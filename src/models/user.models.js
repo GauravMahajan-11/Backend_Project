@@ -38,10 +38,10 @@ const userSchema = new Schema({
         ref: 'Video'
     }
     ],
-    password: [{
+    password: {
         type: String,
         required: [true, 'Password is required'],
-    }],
+    },
     refreshToken: {
         type: String
     }
