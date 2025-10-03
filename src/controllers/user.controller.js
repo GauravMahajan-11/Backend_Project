@@ -3,6 +3,7 @@ import {ApiError} from '../utils/ApiError.js';
 import {User} from '../models/user.models.js';
 import { uploadOnCloudinary } from '../utils/cloudinary.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
+import jwt from "jsonwebtoken"
 
 
 const generateAccessTokenAndRefreshToken = async (userId) => 
@@ -159,7 +160,45 @@ const logoutUser = asyncHandler(async (req, res) => {
                   .clearCookie("refreshToken", options)
                   .json(new ApiResponse(200, {}, "USER LOGGED OUT SUCCESSFULLY ! "))
       
-})
- 
+} )
 
-export {registerUser,loginUser,logoutUser}
+const refreshAccessToken = asyncHandler(async (req, res) => {
+ 
+      const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+
+      if(!incomingRefreshToken){
+            throw new ApiError(401,"unauthorized request")
+      }
+
+      try {
+            const decodedToken = jwt.verify(incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET )
+      
+            const user = await User.findById(decodedToken?._id)
+      
+            if (!user) {
+                  throw new ApiError(401,"INVALID REFRESH TOKEN")
+            }
+      
+            if(user?.refreshToken !== incomingRefreshToken){
+                  throw new ApiError(401,"REFRESH TOKEN IS USED OR EXPIRED")
+            }
+      
+            const {accessToken , newRefreshToken} = await generateAccessTokenAndRefreshToken(user._id)
+      
+            const options = {
+                  httpOnly : true,
+                  secure : true
+            }
+      
+            return res.status(200)
+                      .cookie("accessToken", accessToken, options)
+                      .cookie("refreshToken", newRefreshToken, options)
+                      .json( new ApiResponse(200, { accessToken, refreshToken : newRefreshToken},"ACCESS TOKEN REFRESHED SUCCESSFULLY ! ") )
+      
+      } catch (error) {
+            throw new ApiError(401,error?.message || "INVALID REFRESH TOKEN")
+      }
+      
+
+} )
+export {registerUser,loginUser,logoutUser,refreshAccessToken}
