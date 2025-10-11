@@ -4,6 +4,7 @@ import {User} from '../models/user.models.js';
 import { uploadOnCloudinary } from '../utils/cloudinary.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import jwt from "jsonwebtoken"
+import mongoose from 'mongoose';
 
 
 const generateAccessTokenAndRefreshToken = async (userId) => 
@@ -183,7 +184,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
                   throw new ApiError(401,"REFRESH TOKEN IS USED OR EXPIRED")
             }
       
-            const {accessToken , newRefreshToken} = await generateAccessTokenAndRefreshToken(user._id)
+            const {accessToken , refreshToken: newRefreshToken} = await generateAccessTokenAndRefreshToken(user._id)
       
             const options = {
                   httpOnly : true,
@@ -219,7 +220,7 @@ const changeCurrentPassword = asyncHandler(async(req,res) =>{
       }
 
       user.password = newPassword
-      await user.save(validateBeforeSave = false)
+      await user.save( { validateBeforeSave : false})
 
       return res.status(200).json(
             new ApiResponse(200,{},"PASSWORD CHANGED SUCCESSFULLY ! ")
@@ -309,7 +310,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 
 const getUserChannelProfile = asyncHandler (async (req,res) => { 
 
-      const username = req.params
+      const {username} = req.params
       if(!username){
             throw new ApiError(400," USERNAME IS MISSING !!! ")
       }
